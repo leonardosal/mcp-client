@@ -1,0 +1,26 @@
+{
+  "servers": [
+    {
+      "name": "flagcard-mcp",
+      "type": "http",
+      "url": "http://127.0.0.1:3000",
+      "enabled": true
+    },
+    {
+      "name": "playwright",
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "@playwright/mcp@latest"
+      ],
+      "enabled": false
+    },
+    {
+      "name":"fetch",
+      "type": "stdio",
+      "command": "uvx",
+      "args": ["mcp-server-fetch"],
+      "enabled": true
+    }
+  ]
+}

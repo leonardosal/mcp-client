@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MCP Client</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #1a1a1a;
+            --bg-secondary: #2d2d2d;
+            --bg-tertiary: #3d3d3d;
+            --text-primary: #ffffff;
+            --text-secondary: #b0b0b0;
+            --accent: #4a9eff;
+            --accent-hover: #3a8eef;
+            --success: #00d084;
+            --warning: #ffb84d;
+            --error: #ff6b6b;
+            --border: #404040;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .header {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+            min-height: 60px;
+        }
+
+        .header h1 {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--warning);
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.ready {
+            background: var(--success);
+            animation: none;
+        }
+
+        .status-dot.error {
+            background: var(--error);
+            animation: none;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .main-container {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
+
+        .chat-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: var(--bg-primary);
+        }
+
+        .messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .message {
+            max-width: 80%;
+            padding: 12px 16px;
+            border-radius: 12px;
+            line-height: 1.5;
+            font-size: 14px;
+        }
+
+        .message.user {
+            align-self: flex-end;
+            background: var(--accent);
+            color: white;
+        }
+
+        .message.assistant {
+            align-self: flex-start;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+        }
+
+        .message.system {
+            align-self: center;
+            background: var(--bg-tertiary);
+            color: var(--text-secondary);
+            font-size: 12px;
+            font-style: italic;
+            max-width: 60%;
+            text-align: center;
+        }
+
+        .message.error {
+            align-self: center;
+            background: rgba(255, 107, 107, 0.1);
+            border: 1px solid var(--error);
+            color: var(--error);
+            max-width: 60%;
+            text-align: center;
+        }
+
+        .input-area {
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border);
+            padding: 16px 20px;
+            display: flex;
+            gap: 12px;
+            align-items: stretch;
+        }
+
+        .input-container {
+            flex: 1;
+            position: relative;
+        }
+
+        .input-field {
+            width: 100%;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            line-height: 1.4;
+            resize: none;
+            min-height: 44px;
+            max-height: 120px;
+            font-family: inherit;
+            box-sizing: border-box;
+        }
+
+        .input-field:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px rgba(74, 158, 255, 0.2);
+        }
+
+        .send-btn {
+            background: var(--accent);
+            border: none;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: background 0.2s ease;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .send-btn:hover:not(:disabled) {
+            background: var(--accent-hover);
+        }
+
+        .send-btn:disabled {
+            background: var(--bg-tertiary);
+            color: var(--text-secondary);
+            cursor: not-allowed;
+        }
+
+        .loading {
+            display: none;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-secondary);
+            font-size: 14px;
+            padding: 12px 16px;
+        }
+
+        .loading.show {
+            display: flex;
+        }
+
+        .spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid var(--border);
+            border-top: 2px solid var(--accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .welcome-message {
+            text-align: center;
+            color: var(--text-secondary);
+            padding: 60px 40px;
+            font-size: 16px;
+            line-height: 1.6;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .welcome-message h2 {
+            color: var(--text-primary);
+            margin-bottom: 20px;
+            font-size: 28px;
+            font-weight: 600;
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-primary);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-secondary);
+        }
+
+        @media (max-width: 768px) {
+            .message {
+                max-width: 95%;
+            }
+
+            .header {
+                padding: 12px 16px;
+            }
+
+            .header h1 {
+                font-size: 18px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>
+            <span>🤖</span>
+            <span>MCP Client</span>
+        </h1>
+        <div class="status-indicator">
+            <span class="status-dot" id="statusDot"></span>
+            <span id="statusText">Inicializando...</span>
+        </div>
+    </div>
+
+    <div class="main-container">
+        <div class="chat-container">
+            <div class="messages" id="messagesContainer">
+                <div class="welcome-message">
+                    <h2>Bem-vindo ao MCP Client</h2>
+                    <p>Digite sua mensagem abaixo para começar a interagir com as ferramentas disponíveis.</p>
+                    <p class="loading-message">O cliente está inicializando as conexões MCP...</p>
+                </div>
+            </div>
+
+            <div class="loading" id="loadingIndicator">
+                <div class="spinner"></div>
+                <span>Processando...</span>
+            </div>
+
+            <div class="input-area">
+                <div class="input-container">
+                    <textarea 
+                        id="messageInput" 
+                        class="input-field"
+                        placeholder="Digite sua mensagem..."
+                        rows="1"
+                    ></textarea>
+                </div>
+                <button id="sendButton" class="send-btn" onclick="sendMessage()">
+                    Enviar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class MCPElectronApp {
+            constructor() {
+                this.messages = [];
+                this.isProcessing = false;
+                this.mcpStatus = 'initializing';
+                
+                this.initializeElements();
+                this.setupEventListeners();
+            }
+
+            initializeElements() {
+                this.elements = {
+                    statusDot: document.getElementById('statusDot'),
+                    statusText: document.getElementById('statusText'),
+                    messagesContainer: document.getElementById('messagesContainer'),
+                    messageInput: document.getElementById('messageInput'),
+                    sendButton: document.getElementById('sendButton'),
+                    loadingIndicator: document.getElementById('loadingIndicator')
+                };
+            }
+
+            setupEventListeners() {
+                this.elements.messageInput.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        this.sendMessage();
+                    }
+                });
+
+                this.elements.messageInput.addEventListener('input', () => {
+                    this.autoResizeTextarea();
+                });
+
+                window.electronAPI.onMCPStatusChanged((data) => {
+                    this.updateMCPStatus(data);
+                });
+
+                window.addEventListener('beforeunload', () => {
+                    window.electronAPI.removeAllListeners();
+                });
+            }
+
+            autoResizeTextarea() {
+                const textarea = this.elements.messageInput;
+                
+                // Reset height to calculate scrollHeight properly
+                textarea.style.height = '44px';
+                
+                // Calculate new height based on content
+                const newHeight = Math.min(Math.max(textarea.scrollHeight, 44), 120);
+                textarea.style.height = newHeight + 'px';
+            }
+
+            updateMCPStatus(data) {
+                this.mcpStatus = data.status;
+                
+                this.elements.statusDot.className = `status-dot ${data.status}`;
+                
+                switch (data.status) {
+                    case 'ready':
+                        this.elements.statusText.textContent = 'Pronto';
+                        this.elements.sendButton.disabled = false;
+                        this.addSystemMessage('✅ MCP Client inicializado e pronto para uso');
+                        break;
+                    case 'error':
+                        this.elements.statusText.textContent = 'Erro';
+                        this.elements.sendButton.disabled = true;
+                        this.addSystemMessage(`❌ Erro: ${data.message}`, 'error');
+                        break;
+                    default:
+                        this.elements.statusText.textContent = 'Inicializando...';
+                        this.elements.sendButton.disabled = true;
+                }
+
+                if (data.status === 'ready') {
+                    // Interface simplificada - sem necessidade de refresh
+                }
+            }
+
+            addMessage(content, type = 'user') {
+                const messageElement = document.createElement('div');
+                messageElement.className = `message ${type}`;
+                
+                const processedContent = this.processMessageContent(content);
+                messageElement.innerHTML = processedContent;
+                
+                const loadingMessage = this.elements.messagesContainer.querySelector('.loading-message');
+                if (loadingMessage) {
+                    loadingMessage.remove();
+                }
+                
+                this.elements.messagesContainer.appendChild(messageElement);
+                this.scrollToBottom();
+                
+                this.messages.push({ content, type, timestamp: Date.now() });
+            }
+
+            addSystemMessage(content, type = 'system') {
+                this.addMessage(content, type);
+            }
+
+            processMessageContent(content) {
+                const escaped = content
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;');
+                
+                const withBreaks = escaped.replace(/\n/g, '<br>');
+                
+                const withLinks = withBreaks.replace(
+                    /(https?:\/\/[^\s]+)/g,
+                    '<a href="$1" target="_blank" style="color: var(--accent); text-decoration: underline;">$1</a>'
+                );
+                
+                return withLinks;
+            }
+
+            scrollToBottom() {
+                this.elements.messagesContainer.scrollTop = this.elements.messagesContainer.scrollHeight;
+            }
+
+            async sendMessage() {
+                const message = this.elements.messageInput.value.trim();
+                if (!message || this.isProcessing || this.mcpStatus !== 'ready') {
+                    return;
+                }
+
+                this.addMessage(message, 'user');
+                
+                this.elements.messageInput.value = '';
+                this.autoResizeTextarea();
+                
+                this.setProcessing(true);
+
+                try {
+                    const response = await window.electronAPI.processRequest(message);
+                    
+                    if (response.success) {
+                        this.addMessage(response.data, 'assistant');
+                    } else {
+                        this.addMessage(`Erro: ${response.error}`, 'error');
+                    }
+                } catch (error) {
+                    this.addMessage(`Erro de comunicação: ${error.message}`, 'error');
+                } finally {
+                    this.setProcessing(false);
+                    // Interface simplificada - sem stats
+                }
+            }
+
+            setProcessing(processing) {
+                this.isProcessing = processing;
+                this.elements.sendButton.disabled = processing || this.mcpStatus !== 'ready';
+                this.elements.loadingIndicator.classList.toggle('show', processing);
+                
+                if (processing) {
+                    this.elements.sendButton.textContent = 'Processando...';
+                } else {
+                    this.elements.sendButton.textContent = 'Enviar';
+                }
+            }
+
+            escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+        }
+
+        // Funções globais simplificadas
+        window.sendMessage = () => app.sendMessage();
+
+        // Inicializar a aplicação quando o DOM estiver pronto
+        document.addEventListener('DOMContentLoaded', () => {
+            if (typeof window.electronAPI === 'undefined') {
+                document.body.innerHTML = `
+                    <div style="color: red; padding: 20px; text-align: center;">
+                        <h2>Erro: electronAPI não disponível</h2>
+                        <p>Verifique se o preload script está funcionando corretamente.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            window.app = new MCPElectronApp();
+        });
+    </script>
+</body>
+</html>
